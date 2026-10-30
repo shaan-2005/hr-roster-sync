@@ -2,6 +2,8 @@
 
 The [submission video](demo/hr_roster_sync_demo.mp4) is the project owner's screen recording of a live run in PowerShell. It runs `python demo_capture.py --record` against the local Docker Compose stack. The recording begins in a clean terminal and does not display the local API token. Its machine-readable results are saved in [capture.json](demo/capture.json).
 
+The [Postman API walkthrough](demo/postman_demo.mp4) shows a health check, an applied employee update, duplicate and stale replays, and a final employee read. The operator token is not shown in the recording.
+
 To repeat the demonstration with the stack running:
 
 ```powershell

@@ -54,7 +54,7 @@ After confirming an interrupted import is no longer running, an operator can res
 
 ## Demo
 
-The [demo guide](DEMO.md) explains the live script and links to a short MP4 captured from real API and worker-failure output.
+The [demo guide](DEMO.md) links to the live worker-failure video and a separate [Postman API walkthrough](demo/postman_demo.mp4) showing sample HTTP calls.
 
 ## Rules and trade-offs
 
