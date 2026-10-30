@@ -5,6 +5,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 import urllib.error
 import urllib.request
@@ -15,6 +16,7 @@ ROOT = Path(__file__).resolve().parent
 WINDOWS_COMPOSE = Path(r"D:\Docker\resources\bin\docker-compose.exe")
 BASE = "http://127.0.0.1:8000"
 STEPS = []
+RECORD_MODE = "--record" in sys.argv
 
 
 def compose(*args):
@@ -37,6 +39,8 @@ def emit(title, command, result):
     step = {"title": title, "command": command, "result": result}
     STEPS.append(step)
     print(f"\n[{len(STEPS)}] {title}\n$ {command}\n{result}", flush=True)
+    if RECORD_MODE:
+        time.sleep(3)
 
 
 def api(method, path, token, data=None):

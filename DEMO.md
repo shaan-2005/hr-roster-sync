@@ -4,10 +4,10 @@ The [40-second MP4](demo/hr_roster_sync_demo.mp4) replays a redacted capture of 
 
 ```powershell
 cd D:\hr_roster_sync
-python demo_capture.py
+python demo_capture.py --record
 ```
 
-The script obtains a local demo operator token internally and performs these steps against the running API:
+Recording mode pauses three seconds after each step so the terminal output is readable. The script obtains a local demo operator token internally and performs these steps against the running API:
 
 1. Health check.
 2. Create an employee (version 1).
