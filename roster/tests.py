@@ -1,10 +1,15 @@
 import csv
 import io
 import json
+import os
+import subprocess
+import sys
+from pathlib import Path
 import threading
 from datetime import timedelta
 from unittest.mock import patch
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
 from django.db import close_old_connections, connection, transaction
 from django.test import TestCase, TransactionTestCase, override_settings
 from django.utils import timezone
@@ -125,6 +130,22 @@ class ImportTests(BaseRosterTest):
         self.assertEqual(run.importerror_set.first().code, "version_conflict")
 
 
+    def test_approved_import_can_recover_after_claim_crash(self):
+        apply_record(self.tenant.id, validate_record(record("e1"), self.tenant.id))
+        apply_record(self.tenant.id, validate_record(record("e2"), self.tenant.id))
+        run = stage_csv(self.tenant.id, self.csv_stream([record("e1", version=2)]))
+        self.assertEqual(run.status, "needs_review")
+        with patch("roster.views.apply_import", side_effect=SystemExit("injected_crash")):
+            with self.assertRaises(SystemExit):
+                self.client.post(f"/api/imports/{run.id}/apply/", {"approve_missing": True}, format="json")
+        run.refresh_from_db()
+        self.assertEqual(run.status, "applying")
+        self.assertEqual(run.approved_by_id, self.user.id)
+        call_command("recover_import", run.id)
+        run.refresh_from_db()
+        self.assertEqual(run.status, "completed")
+        self.assertFalse(Employee.objects.get(tenant=self.tenant, external_id="e2").active)
+
 class OutboxTests(BaseRosterTest):
     def test_crash_after_commit_then_recovery_and_idempotent_delivery(self):
         apply_record(self.tenant.id, validate_record(record(), self.tenant.id))
@@ -182,6 +203,40 @@ class ConcurrencyTests(TransactionTestCase):
         self.assertFalse(failures)
         employee = Employee.objects.get(tenant=self.tenant, external_id="e1")
         self.assertEqual((employee.source_version, employee.shift), (3, "s3"))
+
+
+class ProcessCrashTests(TransactionTestCase):
+    def test_process_exit_after_commit_before_publish(self):
+        if connection.vendor != "postgresql":
+            self.skipTest("separate-process test requires PostgreSQL")
+        tenant = Tenant.objects.create(name="Crash test")
+        Office.objects.create(tenant=tenant, code="BLR", name="Bengaluru")
+        apply_record(tenant.id, validate_record(record(), tenant.id))
+        employee = Employee.objects.get(tenant=tenant, external_id="e1")
+        booking = Booking.objects.create(tenant=tenant, employee=employee,
+                                         starts_at=timezone.now() + timedelta(days=1))
+        child_code = (
+            "import os; import django; django.setup(); "
+            "from roster.services import apply_record; "
+            "from roster.validation import validate_record; "
+            f"apply_record({tenant.id}, validate_record("
+            f"{{'employee_id':'e1','source_version':2,'operation':'DEACTIVATE'}}, {tenant.id})); "
+            "os._exit(37)"
+        )
+        child_env = os.environ.copy()
+        child_env["POSTGRES_DB"] = str(connection.settings_dict["NAME"])
+        child = subprocess.run([sys.executable, "-c", child_code],
+                               cwd=Path(__file__).resolve().parent.parent,
+                               env=child_env, capture_output=True, timeout=15)
+        self.assertEqual(child.returncode, 37, child.stderr.decode(errors="replace"))
+        event = OutboxEvent.objects.get(tenant=tenant, kind="EMPLOYEE_DEACTIVATED")
+        self.assertIsNone(event.published_at)
+        booking.refresh_from_db()
+        self.assertEqual(booking.status, "booked")
+        self.assertEqual(process_event(event), "processed")
+        booking.refresh_from_db()
+        self.assertEqual((booking.status, booking.seat_released), ("cancelled", True))
+
 
 class SubmissionBoundaryTests(BaseRosterTest):
     def test_roles_separate_hr_and_transport_writes(self):

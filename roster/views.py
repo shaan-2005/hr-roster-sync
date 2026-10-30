@@ -144,11 +144,14 @@ class ImportApplyView(APIView):
                 return Response({"code": "invalid_import_state"}, status=409)
             if run.status == "needs_review" and request.data.get("approve_missing") is not True:
                 return Response({"code": "approval_required", "missing": run.missing_count}, status=409)
-            # Claim the run before releasing the row lock. The worker can resume a failed run.
+            # Persist approval with the claim so a crash before apply_import can be recovered.
+            original_status = run.status
             run.status = "applying"
-            run.save(update_fields=["status"])
-        run.status = "needs_review" if request.data.get("approve_missing") is True else "ready"
-        apply_import(run, approved_by=request.user if run.status == "needs_review" else None)
+            if original_status == "needs_review":
+                run.approved_by = request.user
+            run.save(update_fields=["status", "approved_by"])
+        run.status = original_status
+        apply_import(run, approved_by=run.approved_by)
         return Response({"run_id": run.id, "status": run.status, "applied": run.applied_count})
 
 

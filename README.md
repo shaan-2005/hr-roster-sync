@@ -2,6 +2,8 @@
 
 Django implementation of MoveInSync Case Study 5. It accepts versioned HR events, reconciles nightly rosters, preserves transport-admin fields, and delivers downstream changes through a transactional outbox.
 
+Python and Django were chosen for fast, readable API and data-layer development; PostgreSQL performs the 200,000-row reconciliation with set-based SQL. Core validation and version rules remain in plain classes and functions so they can be tested directly.
+
 ## Run
 
 ```sh
@@ -46,7 +48,7 @@ The benchmark prints machine details, stage and apply time, rows per second, pea
 
 The PostgreSQL import uses COPY into a temporary table followed by set-based upserts and matching outbox inserts. SQLite remains a portable local-test fallback. A smaller SQLite smoke run is not used to assess the PostgreSQL target.
 
-The PostgreSQL-only concurrency test starts two threads updating the same employee and verifies that the higher source version wins. SQLite skips this test because its locking model is different. Other tests cover replay, stale updates, field ownership, invalid records, tenant isolation, mass-deactivation protection, delivery timeout, and crash recovery.
+The PostgreSQL-only concurrency test starts two threads updating the same employee and verifies that the higher source version wins. A separate-process failure test commits a deactivation and exits before event publication; recovery then cancels the future booking. Another injected-crash test verifies that approval of a flagged import survives a crash before apply begins. SQLite skips the PostgreSQL concurrency and process-crash tests because its locking model is different. Other tests cover replay, stale updates, field ownership, invalid records, tenant isolation, mass-deactivation protection, and delivery timeout.
 
 After confirming an interrupted import is no longer running, an operator can resume it with `docker compose exec app python manage.py recover_import RUN_ID`. A flagged import must have prior operator approval. Reapplying already committed employee versions is idempotent; the worker also restarts automatically after a crash.
 

@@ -49,6 +49,7 @@ If the worker crashes after booking commits but before marking the outbox event 
 | Equal version with different content | `conflict` result | HR must issue a newer version |
 | Invalid row in a batch | Per-record code and field | Good records continue; no personal value in errors |
 | Incomplete nightly file | Run marked `needs_review` | No changes until operator approves |
+| Process exits after approved import is claimed | Request does not finish | Saved approval lets `recover_import` resume the run |
 | Worker stops after employee commit | API has already returned `applied` | Pending outbox event is retried on restart |
 | Downstream timeout | Event remains pending | Exponential backoff with jitter; retry metrics rise |
 | Duplicate downstream delivery | Same event ID delivered again | Processed-event table makes the side effect a no-op |
