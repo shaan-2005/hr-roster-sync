@@ -1,6 +1,6 @@
 # Demo: HR roster sync
 
-The [submission video](demo/hr_roster_sync_demo.mp4) is an edited recording of a live run in the project owner's PowerShell terminal. It runs `python demo_capture.py --record` against the local Docker Compose stack. The first part of the raw screen recording was removed because it showed a local API token; the submitted video does not include the token. The video is silent and has an index along the bottom. Its machine-readable results are saved in [capture.json](demo/capture.json).
+The [submission video](demo/hr_roster_sync_demo.mp4) is the project owner's screen recording of a live run in PowerShell. It runs `python demo_capture.py --record` against the local Docker Compose stack. The recording begins in a clean terminal and does not display the local API token. Its machine-readable results are saved in [capture.json](demo/capture.json).
 
 To repeat the demonstration with the stack running:
 

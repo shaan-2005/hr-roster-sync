@@ -1,5 +1,5 @@
 {
-  "demo_employee_id": "demo-20261030212312",
+  "demo_employee_id": "demo-20261030233456",
   "steps": [
     {
       "title": "Stack health",
@@ -9,27 +9,27 @@
     {
       "title": "New employee",
       "command": "POST /api/hr/events/ version=1",
-      "result": "{\"results\": [{\"index\": 0, \"employee_id\": \"demo-20261030212312\", \"result\": \"applied\"}]}"
+      "result": "{\"results\": [{\"index\": 0, \"employee_id\": \"demo-20261030233456\", \"result\": \"applied\"}]}"
     },
     {
       "title": "Duplicate feed is harmless",
       "command": "POST /api/hr/events/ version=1 again",
-      "result": "{\"results\": [{\"index\": 0, \"employee_id\": \"demo-20261030212312\", \"result\": \"duplicate\"}]}"
+      "result": "{\"results\": [{\"index\": 0, \"employee_id\": \"demo-20261030233456\", \"result\": \"duplicate\"}]}"
     },
     {
       "title": "Older update is ignored",
       "command": "POST /api/hr/events/ version=0",
-      "result": "{\"results\": [{\"index\": 0, \"employee_id\": \"demo-20261030212312\", \"result\": \"stale\"}]}"
+      "result": "{\"results\": [{\"index\": 0, \"employee_id\": \"demo-20261030233456\", \"result\": \"stale\"}]}"
     },
     {
       "title": "Transport field survives HR sync",
       "command": "PATCH pickup; POST version=2; GET employee",
-      "result": "{\"employee_id\": \"demo-20261030212312\", \"office\": \"BLR\", \"shift\": \"evening\", \"active\": true, \"pickup_point\": \"Gate 2\", \"source_version\": 2}"
+      "result": "{\"employee_id\": \"demo-20261030233456\", \"office\": \"BLR\", \"shift\": \"evening\", \"active\": true, \"pickup_point\": \"Gate 2\", \"source_version\": 2}"
     },
     {
       "title": "Broken nightly file is stopped",
       "command": "POST /api/imports/ header-only CSV",
-      "result": "{\"run_id\": 6, \"status\": \"needs_review\", \"rows\": 0, \"invalid\": 0, \"missing\": 1} | employee active=true"
+      "result": "{\"run_id\": 7, \"status\": \"needs_review\", \"rows\": 0, \"invalid\": 0, \"missing\": 1} | employee active=true"
     },
     {
       "title": "Failure injected",
@@ -39,7 +39,7 @@
     {
       "title": "Change commits while worker is down",
       "command": "POST deactivation version=3; inspect database",
-      "result": "{\"results\": [{\"index\": 0, \"employee_id\": \"demo-20261030212312\", \"result\": \"applied\"}]} | 19 objects imported automatically (use -v 2 for details). |  | booking=booked | pending=1"
+      "result": "{\"results\": [{\"index\": 0, \"employee_id\": \"demo-20261030233456\", \"result\": \"applied\"}]} | 19 objects imported automatically (use -v 2 for details). |  | booking=booked | pending=1"
     },
     {
       "title": "Worker recovers safely",
