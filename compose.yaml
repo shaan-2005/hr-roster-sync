@@ -1,0 +1,48 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: roster
+      POSTGRES_USER: roster
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run start.ps1 or start.sh first}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U roster -d roster"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+    volumes:
+      - roster_db:/var/lib/postgresql/data
+  app:
+    build: .
+    restart: unless-stopped
+    environment: &app_env
+      POSTGRES_HOST: db
+      POSTGRES_DB: roster
+      POSTGRES_USER: roster
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Run start.ps1 or start.sh first}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Run start.ps1 or start.sh first}
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1,app
+      OUTBOX_INTERNAL_URL: http://app:8000/api/internal/events/
+      OUTBOX_INTERNAL_TOKEN: ${OUTBOX_INTERNAL_TOKEN:?Run start.ps1 or start.sh first}
+    command: sh -c "python manage.py migrate --noinput && gunicorn config.wsgi:application --bind 0.0.0.0:8000 --workers 3 --timeout 120"
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health/', timeout=2)"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    ports:
+      - "8000:8000"
+  worker:
+    build: .
+    restart: unless-stopped
+    environment: *app_env
+    command: python manage.py run_outbox
+    depends_on:
+      app:
+        condition: service_healthy
+volumes:
+  roster_db:

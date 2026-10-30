@@ -1,0 +1,8 @@
+.deps
+.venv
+__pycache__
+*.pyc
+*.sqlite3
+.git
+.env
+benchmark-results.json
